@@ -1,0 +1,5 @@
+fileFilter: "boshcli*.sh" 
+#srcDirName: "/links/Stefan/privat/myPrg/MyPythonPrgs/ConvertDirectoryTree/testdata/src"
+srcDirName: "/links/workdata/BlueMix/gits/GHE/doctor-service-ops/ssh"
+#tgtDirName: "/links/Stefan/privat/myPrg/MyPythonPrgs/ConvertDirectoryTree/testdata/tgt"
+tgtDirName: "/home/zinks/.ssh"
