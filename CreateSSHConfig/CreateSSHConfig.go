@@ -9,7 +9,8 @@ import (
     "bufio"
     "os"
     "strings"
-    "log"    
+    "log"
+    "strconv"
 )    
 
 // programConfig input from yaml config file
@@ -19,15 +20,32 @@ type ProgramConfig struct {
     TgtDirName string `yaml:"tgtDirName"`
 }
 
-var SSHGlobals map[string]string
 
 type SSHEntry struct {
 	Name string
 	Port int
+	Jumpbox string
 }
 
-var programConfig  ProgramConfig
+func (s SSHEntry) print() string {
+	output := fmt.Sprintf("Name: %s, Port: %v, Jumpbox: %s \n" , s.Name, s.Port, s.Jumpbox) 
+	return output
+}
 
+func (s SSHEntry) appendToConfig() string {
+	output := fmt.Sprintf("Host %s\n" , s.Name )
+	output += fmt.Sprintf("  Hostname %s\n", s.Jumpbox)
+	output += fmt.Sprintf("  Port %v\n", s.Port)
+	output += fmt.Sprintf("  StrictHostKeyChecking no\n" )
+	output += fmt.Sprintf("  ProxyCommand ssh -q -W %h:%p w3-boshcli\n")
+	return output
+}
+
+
+
+var SSHGlobals map[string]string
+var programConfig  ProgramConfig
+var SSHEntries [] SSHEntry
 
 func main() {
 	fmt.Println("CreateSSHConfig.go")
@@ -41,7 +59,40 @@ func main() {
 	    fmt.Println("Key:", key, "Value:", value)
 	}
 	getBoshcliFilesInDir(programConfig.SrcDirName)
-	readBoshcliSHFile( path.Join( programConfig.SrcDirName , "boshcli_ukpostoffice_1.sh"))	
+	CreateSSHConfigFile()
+	
+}
+
+func generateSSHConfigHeader () string {
+	output := `
+Host *
+  StrictHostKeyChecking no
+  ForwardX11    yes
+
+Host w3-boshcli
+  Hostname bosh-cli-bluemix.rtp.raleigh.ibm.com
+  User Stefan.Zink@de.ibm.com
+  StrictHostKeyChecking no
+  ForwardAgent yes
+  
+`
+	return output
+} 
+
+
+func CreateSSHConfigFile() {
+	configFileName := path.Join(programConfig.TgtDirName, "sshConfig" )
+	f, err := os.Create(configFileName)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, " Filename: %v \n Error: %v\n",configFileName, err)
+    }
+    
+    f.WriteString(generateSSHConfigHeader() )
+    for _, curEntry := range SSHEntries {
+    	f.WriteString(curEntry.appendToConfig())
+    	f.WriteString("\n")
+    }    
+    f.Close()
 }
 
 func getBoshcliFilesInDir (boshClisSrcDir string) {
@@ -53,11 +104,16 @@ func getBoshcliFilesInDir (boshClisSrcDir string) {
 	}
 	fmt.Println(files)		
 	for _, file := range files {
-		fmt.Println(strings.SplitAfter(filepath.Base(file),filepath.Ext(file)))
+		newEntryName := strings.Split(filepath.Base(file),filepath.Ext(file))
+		//fmt.Println("newEntryName =" , newEntryName[0] )
+		newSSHEntry := SSHEntry{Name: newEntryName[0]}
+		readBoshcliSHFile(file, &newSSHEntry)
+		SSHEntries = append(SSHEntries,newSSHEntry)
 	}
+	fmt.Printf("Number of entries found %v \n", len(SSHEntries))
 }
 
-func readBoshcliSHFile (shFileName string) {
+func readBoshcliSHFile (shFileName string, newSSHEntry *SSHEntry) {
 	f, err := os.Open(shFileName)
     if err != nil {
         fmt.Fprintf(os.Stderr, " Filename: %v \n Error: %v\n",shFileName, err)
@@ -66,13 +122,22 @@ func readBoshcliSHFile (shFileName string) {
     for input.Scan() {
     	curStr := input.Text()    	
         if (strings.Contains(curStr, "ssh -p")) {
-	        fmt.Println(curStr)
+	        //fmt.Println(curStr)
 	        idx := strings.Index(curStr, "-p")
 	        port := curStr[idx+3:idx+8]
-	        fmt.Printf("Port: %s", port)
+	        //fmt.Printf("Port: %s", port)
+	        newSSHEntry.Port, err = strconv.Atoi(port)
         }
+        if (strings.Contains(curStr, "JUMPBOX=")) {
+	        //fmt.Println(curStr)
+	        idx := strings.Index(curStr, "OX=")
+	        newSSHEntry.Jumpbox = curStr[idx+3:]
+        }
+        
     }       
-    f.Close()    
+    f.Close()
+    fmt.Print(newSSHEntry.print()) 
+       
 }
 
 
