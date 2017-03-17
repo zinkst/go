@@ -11,6 +11,7 @@ import (
     "strings"
     "log"
     "strconv"
+    "time"
 )    
 
 // programConfig input from yaml config file
@@ -37,7 +38,8 @@ func (s SSHEntry) appendToConfig() string {
 	output += fmt.Sprintf("  Hostname %s\n", s.Jumpbox)
 	output += fmt.Sprintf("  Port %v\n", s.Port)
 	output += fmt.Sprintf("  StrictHostKeyChecking no\n" )
-	output += fmt.Sprintf("  ProxyCommand ssh -q -W %h:%p w3-boshcli\n")
+	output += `  ProxyCommand ssh -q -W %h:%p w3-boshcli`
+	output += "\n"
 	return output
 }
 
@@ -81,12 +83,17 @@ Host w3-boshcli
 
 
 func CreateSSHConfigFile() {
-	configFileName := path.Join(programConfig.TgtDirName, "sshConfig" )
+	t := time.Now()
+	formattedDate := fmt.Sprintf("%d%02d%02d", t.Year(), t.Month(), t.Day())
+	configFileName := path.Join(programConfig.TgtDirName, "sshConfig_" + formattedDate )
 	f, err := os.Create(configFileName)
-    if err != nil {
+	if err != nil {
         fmt.Fprintf(os.Stderr, " Filename: %v \n Error: %v\n",configFileName, err)
     }
-    
+    err = os.Chmod(configFileName, 0600)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, " Filename: %v \n Error changing permissions: %v\n",configFileName, err)
+    }
     f.WriteString(generateSSHConfigHeader() )
     for _, curEntry := range SSHEntries {
     	f.WriteString(curEntry.appendToConfig())
