@@ -19,6 +19,9 @@ type ProgramConfig struct {
     FileFilter string `yaml:"fileFilter"`
     SrcDirName string `yaml:"srcDirName"`
     TgtDirName string `yaml:"tgtDirName"`
+    ConfigPrefix string `yaml:"configPrefix"`    
+    ConfigSuffix string `yaml:"configSuffix"`    
+    
 }
 
 
@@ -35,11 +38,10 @@ func (s SSHEntry) print() string {
 
 func (s SSHEntry) appendToConfig() string {
 	output := fmt.Sprintf("Host %s\n" , s.Name )
-	output += fmt.Sprintf("  Hostname %s\n", s.Jumpbox)
+	//output += fmt.Sprintf("  Hostname %s\n", s.Jumpbox)
 	output += fmt.Sprintf("  Port %v\n", s.Port)
-	output += fmt.Sprintf("  StrictHostKeyChecking no\n" )
-	output += `  ProxyCommand ssh -q -W %h:%p w3-boshcli`
-	output += "\n"
+	//output += fmt.Sprintf("  StrictHostKeyChecking no\n" )
+	//output += `  ProxyCommand ssh -q -W %h:%p w3-boshcli`
 	return output
 }
 
@@ -65,23 +67,6 @@ func main() {
 	
 }
 
-func generateSSHConfigHeader () string {
-	output := `
-Host *
-  StrictHostKeyChecking no
-  ForwardX11    yes
-
-Host w3-boshcli
-  Hostname bosh-cli-bluemix.rtp.raleigh.ibm.com
-  User Stefan.Zink@de.ibm.com
-  StrictHostKeyChecking no
-  ForwardAgent yes
-  
-`
-	return output
-} 
-
-
 func CreateSSHConfigFile() {
 	t := time.Now()
 	formattedDate := fmt.Sprintf("%d%02d%02d", t.Year(), t.Month(), t.Day())
@@ -94,11 +79,13 @@ func CreateSSHConfigFile() {
     if err != nil {
         fmt.Fprintf(os.Stderr, " Filename: %v \n Error changing permissions: %v\n",configFileName, err)
     }
-    f.WriteString(generateSSHConfigHeader() )
+    //f.WriteString(generateSSHConfigHeader() )
+    f.WriteString(programConfig.ConfigPrefix)
     for _, curEntry := range SSHEntries {
     	f.WriteString(curEntry.appendToConfig())
     	f.WriteString("\n")
     }    
+    f.WriteString(programConfig.ConfigSuffix)
     f.Close()
 }
 
@@ -111,9 +98,10 @@ func getBoshcliFilesInDir (boshClisSrcDir string) {
 	}
 	fmt.Println(files)		
 	for _, file := range files {
-		newEntryName := strings.Split(filepath.Base(file),filepath.Ext(file))
-		//fmt.Println("newEntryName =" , newEntryName[0] )
-		newSSHEntry := SSHEntry{Name: newEntryName[0]}
+		sshEntryName := strings.Split(filepath.Base(file),filepath.Ext(file))
+		newSshEntryName := strings.Replace(sshEntryName[0],"boshcli_","bm+",1)
+		log.Print("EntryName =" , sshEntryName[0]," - replaced EntryName=" ,  newSshEntryName )
+		newSSHEntry := SSHEntry{Name: newSshEntryName}
 		readBoshcliSHFile(file, &newSSHEntry)
 		SSHEntries = append(SSHEntries,newSSHEntry)
 	}
@@ -128,7 +116,7 @@ func readBoshcliSHFile (shFileName string, newSSHEntry *SSHEntry) {
     input := bufio.NewScanner(f) 
     for input.Scan() {
     	curStr := input.Text()    	
-        if (strings.Contains(curStr, "ssh -p")) {
+        if (strings.Contains(curStr, "ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=15")) {
 	        //fmt.Println(curStr)
 	        idx := strings.Index(curStr, "-p")
 	        port := curStr[idx+3:idx+8]
@@ -149,7 +137,9 @@ func readBoshcliSHFile (shFileName string, newSSHEntry *SSHEntry) {
 
 
 func readConfigFile() {
-	filename, _ := filepath.Abs("/home/zinks/workspace/CreateSSHConfig/src/github.com/zinkst/go/CreateSSHConfig/CreateSSHConfig.yml")
+	wrkdir, err := os.Getwd()
+	fmt.Printf("workingDir: %s \n", wrkdir)
+	filename, _ := filepath.Abs(path.Join(wrkdir,"CreateSSHConfig.yml"))
     yamlFile, err := ioutil.ReadFile(filename)
 
     if err != nil {
