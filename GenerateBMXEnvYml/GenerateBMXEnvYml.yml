@@ -1,0 +1,6 @@
+fileFilter: "boshcli*.sh" 
+#srcDirName: "/links/workdata/BlueMix/gits/GHE/doctor-service-ops/ssh"
+boshcliCmdsSrcDirName: "/links/workdata/BlueMix/bin/boshcli_cmds"
+jmlSrcDirName: "/links/workdata/BlueMix/gits/jml-gits"
+tgtDirName: "/home/zinks/Desktop"
+#tgtDirName: "/home/zinks/.ssh"
