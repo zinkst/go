@@ -2,6 +2,33 @@
 
 
 [[projects]]
+  name = "github.com/codegangsta/cli"
+  packages = ["."]
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
+
+[[projects]]
+  name = "github.com/nats-io/go-nats"
+  packages = [
+    "encoders/builtin",
+    "util"
+  ]
+  revision = "062418ea1c2181f52dc0f954f6204370519a868b"
+  version = "v1.5.0"
+
+[[projects]]
+  name = "github.com/nats-io/nats"
+  packages = ["."]
+  revision = "062418ea1c2181f52dc0f954f6204370519a868b"
+  version = "v1.5.0"
+
+[[projects]]
+  name = "github.com/nats-io/nuid"
+  packages = ["."]
+  revision = "289cccf02c178dc782430d534e3c1f5b72af807f"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/smallfish/simpleyaml"
   packages = ["."]
@@ -16,6 +43,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8845bf5153547788bea6b2759bd39224ba1ad5de2e8d63ca4dbd2331d84c5843"
+  inputs-digest = "285abff863cf8961feb16b0eeb33a21d6743ae77856c3cb35bef910a51e37da6"
   solver-name = "gps-cdcl"
   solver-version = 1
