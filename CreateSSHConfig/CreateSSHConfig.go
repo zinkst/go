@@ -46,20 +46,20 @@ func (s SSHEntry) appendToConfig() string {
 	return output
 }
 
-var SSHGlobals map[string]string
+var sshGlobals map[string]string
+var sshEntries []SSHEntry
 var programConfig ProgramConfig
-var SSHEntries []SSHEntry
 
 func main() {
 	fmt.Println("CreateSSHConfig.go")
 	fmt.Println("Test Build from vscode 2")
 	readConfigFile()
-	SSHGlobals = make(map[string]string)
-	SSHGlobals["proxyHostname"] = "bosh-cli-bluemix.rtp.raleigh.ibm.com"
-	SSHGlobals["User"] = "Stefan.Zink@de.ibm.com"
+	sshGlobals = make(map[string]string)
+	sshGlobals["proxyHostname"] = "bosh-cli-bluemix.rtp.raleigh.ibm.com"
+	sshGlobals["User"] = "Stefan.Zink@de.ibm.com"
 	//SSHGlobals["StrictHostKeyChecking"] = "no"
-	SSHGlobals["ForwardAgent"] = "yes"
-	for key, value := range SSHGlobals {
+	sshGlobals["ForwardAgent"] = "yes"
+	for key, value := range sshGlobals {
 		fmt.Println("Key:", key, "Value:", value)
 	}
 	getBoshcliFilesInDir(programConfig.SrcDirName)
@@ -97,7 +97,7 @@ func CreateSSHConfigFile() {
 		fmt.Fprintf(os.Stderr, " Filename: %v \n Error changing permissions: %v\n", configFileName, err)
 	}
 	f.WriteString(generateSSHConfigHeader())
-	for _, curEntry := range SSHEntries {
+	for _, curEntry := range sshEntries {
 		f.WriteString(curEntry.appendToConfig())
 		f.WriteString("\n")
 	}
@@ -117,7 +117,7 @@ func getBoshcliFilesInDir(boshClisSrcDir string) {
 		//fmt.Println("newEntryName =" , newEntryName[0] )
 		newSSHEntry := SSHEntry{Name: newEntryName[0]}
 		readBoshcliSHFile(file, &newSSHEntry)
-		SSHEntries = append(SSHEntries, newSSHEntry)
+		sshEntries = append(sshEntries, newSSHEntry)
 	}
 	fmt.Printf("Number of entries found %v \n", len(sshEntries))
 }
