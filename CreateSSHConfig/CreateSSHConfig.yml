@@ -1,5 +1,35 @@
 fileFilter: "boshcli*.sh" 
-#srcDirName: "/links/Stefan/privat/myPrg/MyPythonPrgs/ConvertDirectoryTree/testdata/src"
-srcDirName: "/links/workdata/BlueMix/gits/GHE/doctor-service-ops/ssh"
+#srcDirName: "/links/workdata/BlueMix/gits/GHE/doctor-service-ops/ssh"
+srcDirName: "/links/workdata/BlueMix/bin/boshcli_cmds"
 #tgtDirName: "/home/zinks/Desktop"
 tgtDirName: "/home/zinks/.ssh"
+configPrefix: |
+  Host w3-boshcli
+    Hostname bosh-cli-bluemix-new.rtp.raleigh.ibm.com
+    User Stefan.Zink@de.ibm.com
+    StrictHostKeyChecking no
+    ForwardAgent yes
+  
+  Host bm
+    Hostname bosh-cli-bluemix-new.rtp.raleigh.ibm.com
+    User Stefan.Zink@de.ibm.com
+    StrictHostKeyChecking no
+    ForwardAgent yes
+    
+configSuffix: |
+  ######### common 
+  Host bm+*
+    User zinks
+    Hostname 9.39.221.144
+    Port 0
+    ProxyCommand ssh -W %h:%p bm
+  
+  Host *
+    TCPKeepAlive yes
+    ServerAliveInterval 60
+    ForwardAgent yes
+    StrictHostKeyChecking no
+    ForwardX11    yes
+    ControlMaster auto
+    ControlPath ~/.ssh/control/%C
+    ControlPersist 8h

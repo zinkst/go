@@ -15,13 +15,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// programConfig input from yaml config file
+// ProgramConfig input from yaml config file
 type ProgramConfig struct {
-	FileFilter string `yaml:"fileFilter"`
-	SrcDirName string `yaml:"srcDirName"`
-	TgtDirName string `yaml:"tgtDirName"`
+	FileFilter   string `yaml:"fileFilter"`
+	SrcDirName   string `yaml:"srcDirName"`
+	TgtDirName   string `yaml:"tgtDirName"`
+	ConfigPrefix string `yaml:"configPrefix"`
+	ConfigSuffix string `yaml:"configSuffix"`
 }
 
+// SSHEntry das
 type SSHEntry struct {
 	Name    string
 	Port    int
@@ -49,6 +52,7 @@ var SSHEntries []SSHEntry
 
 func main() {
 	fmt.Println("CreateSSHConfig.go")
+	fmt.Println("Test Build from vscode 2")
 	readConfigFile()
 	SSHGlobals = make(map[string]string)
 	SSHGlobals["proxyHostname"] = "bosh-cli-bluemix.rtp.raleigh.ibm.com"
@@ -79,6 +83,7 @@ Host w3-boshcli
 	return output
 }
 
+// CreateSSHConfigFile cd
 func CreateSSHConfigFile() {
 	t := time.Now()
 	formattedDate := fmt.Sprintf("%d%02d%02d", t.Year(), t.Month(), t.Day())
@@ -114,7 +119,7 @@ func getBoshcliFilesInDir(boshClisSrcDir string) {
 		readBoshcliSHFile(file, &newSSHEntry)
 		SSHEntries = append(SSHEntries, newSSHEntry)
 	}
-	fmt.Printf("Number of entries found %v \n", len(SSHEntries))
+	fmt.Printf("Number of entries found %v \n", len(sshEntries))
 }
 
 func readBoshcliSHFile(shFileName string, newSSHEntry *SSHEntry) {
