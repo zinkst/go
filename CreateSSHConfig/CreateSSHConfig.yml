@@ -1,3 +1,5 @@
+# logLevel: debug
+logLevel: info
 fileFilter: "boshcli*.sh" 
 #srcDirName: "/links/workdata/BlueMix/gits/GHE/doctor-service-ops/ssh"
 srcDirName: "/links/workdata/BlueMix/bin/boshcli_cmds"

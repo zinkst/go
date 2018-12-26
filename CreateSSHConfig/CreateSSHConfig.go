@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -12,14 +11,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	validator "gopkg.in/go-playground/validator.v9"
 	"gopkg.in/yaml.v2"
 )
 
 // ProgramConfig input from yaml config file
 type ProgramConfig struct {
-	FileFilter   string `yaml:"fileFilter"`
-	SrcDirName   string `yaml:"srcDirName"`
-	TgtDirName   string `yaml:"tgtDirName"`
+	LogLevel     string `yaml:"logLevel" validate:"required,eq=info|eq=trace|eq=debug|eq=error"`
+	FileFilter   string `yaml:"fileFilter" validate:"required,eq=boshcli*.sh"`
+	SrcDirName   string `yaml:"srcDirName" validate:"required"`
+	TgtDirName   string `yaml:"tgtDirName" validate:"required"`
 	ConfigPrefix string `yaml:"configPrefix"`
 	ConfigSuffix string `yaml:"configSuffix"`
 }
@@ -49,18 +51,37 @@ func (s SSHEntry) appendToConfig() string {
 var sshGlobals map[string]string
 var sshEntries []SSHEntry
 var programConfig ProgramConfig
+var log = logrus.New()
+
+// use a single instance of Validate, it caches struct info
+var validate *validator.Validate
+
+func initLogger() {
+	log.Formatter = new(logrus.JSONFormatter)
+	log.Formatter = new(logrus.TextFormatter) //default
+	// log.Formatter.(*logrus.TextFormatter).DisableColors = true    // remove colors
+	// log.Formatter.(*logrus.TextFormatter).DisableTimestamp = true // remove timestamp from test output
+	// log.Out = os.Stdout
+	log.Level = logrus.InfoLevel
+}
 
 func main() {
-	fmt.Println("CreateSSHConfig.go")
-	fmt.Println("Test Build from vscode 2")
+
+	// fmt.Println("CreateSSHConfig.go")
+	initLogger()
 	readConfigFile()
+	logLevel, err := logrus.ParseLevel(programConfig.LogLevel)
+	if err != nil {
+		panic(err)
+	}
+	log.SetLevel(logLevel)
 	sshGlobals = make(map[string]string)
 	sshGlobals["proxyHostname"] = "bosh-cli-bluemix.rtp.raleigh.ibm.com"
 	sshGlobals["User"] = "Stefan.Zink@de.ibm.com"
 	//SSHGlobals["StrictHostKeyChecking"] = "no"
 	sshGlobals["ForwardAgent"] = "yes"
 	for key, value := range sshGlobals {
-		fmt.Println("Key:", key, "Value:", value)
+		log.Debugln("Key:", key, "Value:", value)
 	}
 	getBoshcliFilesInDir(programConfig.SrcDirName)
 	CreateSSHConfigFile()
@@ -90,11 +111,11 @@ func CreateSSHConfigFile() {
 	configFileName := path.Join(programConfig.TgtDirName, "sshConfig_"+formattedDate)
 	f, err := os.Create(configFileName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, " Filename: %v \n Error: %v\n", configFileName, err)
+		log.Errorf(" Filename: %v \n Error: %v\n", configFileName, err)
 	}
 	err = os.Chmod(configFileName, 0600)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, " Filename: %v \n Error changing permissions: %v\n", configFileName, err)
+		log.Errorf(" Filename: %v \n Error changing permissions: %v\n", configFileName, err)
 	}
 	f.WriteString(generateSSHConfigHeader())
 	for _, curEntry := range sshEntries {
@@ -111,7 +132,7 @@ func getBoshcliFilesInDir(boshClisSrcDir string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(files)
+	log.Debugln(files)
 	for _, file := range files {
 		newEntryName := strings.Split(filepath.Base(file), filepath.Ext(file))
 		//fmt.Println("newEntryName =" , newEntryName[0] )
@@ -119,13 +140,13 @@ func getBoshcliFilesInDir(boshClisSrcDir string) {
 		readBoshcliSHFile(file, &newSSHEntry)
 		sshEntries = append(sshEntries, newSSHEntry)
 	}
-	fmt.Printf("Number of entries found %v \n", len(sshEntries))
+	log.Infof("Number of entries found %v \n", len(sshEntries))
 }
 
 func readBoshcliSHFile(shFileName string, newSSHEntry *SSHEntry) {
 	f, err := os.Open(shFileName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, " Filename: %v \n Error: %v\n", shFileName, err)
+		log.Errorf(" Filename: %v \n Error: %v\n", shFileName, err)
 	}
 	input := bufio.NewScanner(f)
 	for input.Scan() {
@@ -145,7 +166,7 @@ func readBoshcliSHFile(shFileName string, newSSHEntry *SSHEntry) {
 
 	}
 	f.Close()
-	fmt.Print(newSSHEntry.print())
+	log.Debug(newSSHEntry.print())
 
 }
 
@@ -158,13 +179,45 @@ func readConfigFile() {
 		panic(err)
 	}
 
-	fmt.Printf("---- yamlFile: %s -------\n%v", filename, string(yamlFile))
+	log.Infof("---- yamlFile: %s -------\n", filename)
+	log.Debugf("Content:\n%v", string(yamlFile))
 
 	err = yaml.Unmarshal(yamlFile, &programConfig)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("FileFilter: %v\n", programConfig.FileFilter)
-	fmt.Printf("Value: %v\n", programConfig)
+	validate = validator.New()
+	// register validation for 'User'
+	// NOTE: only have to register a non-pointer type for 'User', validator
+	// interanlly dereferences during it's type checks.
+	// validate.RegisterStructValidation(UserStructLevelValidation, ProgramConfig{})
+	valerr := validate.Struct(programConfig)
+	if valerr != nil {
+		if _, ok := valerr.(*validator.InvalidValidationError); ok {
+			log.Debugln(valerr)
+			return
+		}
+		for _, valerr := range valerr.(validator.ValidationErrors) {
+			// fmt.Println(valerr.Namespace())
+			// fmt.Println(valerr.Field())
+			// fmt.Println(valerr.StructNamespace()) // can differ when a custom TagNameFunc is registered or
+			// fmt.Println(valerr.StructField())     // by passing alt name to Reporterror like below
+			// fmt.Println(valerr.Tag())
+			// fmt.Println(valerr.ActualTag())
+			// fmt.Println(valerr.Kind())
+			// fmt.Println(valerr.Type())
+			// fmt.Println(valerr.Value())
+			// fmt.Println(valerr.Param())
+			// fmt.Println()
+			// fmt.Println("Parameter " + valerr.Tag() + " has value " + valerr.Value() + " which does not match required value " + valerr.Param())
+			log.Debugf("Parameter %s has value %s which does not match required value %s\n", valerr.StructNamespace(), valerr.Value(), valerr.Param())
+
+		}
+		// from here you can create your own error messages in whatever language you wish
+		log.Errorf(valerr.Error())
+		panic("exit on validation")
+	}
+	log.Debugf("FileFilter: %v\n", programConfig.FileFilter)
+	// fmt.Printf("Value: %v\n", programConfig)
 }
