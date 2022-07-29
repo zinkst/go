@@ -13,7 +13,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	validator "gopkg.in/go-playground/validator.v9"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // ProgramConfig input from yaml config file

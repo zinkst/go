@@ -10,8 +10,8 @@ import (
 
 	"time"
 
-	"github.com/urfave/cli"
 	"github.com/nats-io/nats.go"
+	"github.com/urfave/cli"
 )
 
 var message = "Usage: nats sub or nats pub"
