@@ -47,8 +47,31 @@ func (d *Deck[cardGeneric]) RandomCard() cardGeneric {
 	return d.cards[cardIdx]
 }
 
+type TradingCard struct {
+	CollectableName string
+}
+
+func NewTradingCard(collectableName string) *TradingCard {
+	return &TradingCard{CollectableName: collectableName}
+}
+
+func (tc *TradingCard) String() string {
+	return tc.CollectableName
+}
+
+func NewTradingCardDeck() *Deck[*TradingCard] {
+	collectables := []string{"Sammy", "Droplets", "Spaces", "App Platform"}
+
+	deck := &Deck[*TradingCard]{}
+	for _, collectable := range collectables {
+		deck.AddCard(NewTradingCard(collectable))
+	}
+	return deck
+}
+
 func main() {
 	deck := NewPlayingCardDeck()
+	tradingDeck := NewTradingCardDeck()
 
 	fmt.Printf("--- drawing playing card ---\n")
 	playingCard := deck.RandomCard()
@@ -56,4 +79,8 @@ func main() {
 
 	fmt.Printf("card suit: %s\n", playingCard.Suit)
 	fmt.Printf("card rank: %s\n", playingCard.Rank)
+	fmt.Printf("--- drawing trading card ---\n")
+	tradingCard := tradingDeck.RandomCard()
+	fmt.Printf("drew card: %s\n", tradingCard)
+	fmt.Printf("card collectable name: %s\n", tradingCard.CollectableName)
 }
